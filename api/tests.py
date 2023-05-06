@@ -1,3 +1,4 @@
+import sys
 from django.test import TestCase
 from django.urls import reverse
 from django.contrib.auth.models import User
@@ -120,6 +121,16 @@ class ApiTestPublic(TestCase):
         actor.refresh_from_db()
         self.assertEqual(actor.vote, 0)
 
+    def test_downvote_actor_by_anonymous_user(self) -> None:
+        '''Testing downvoting actor by anonymous user yields error'''
+        actor = create_actor()
+        self.assertEqual(actor.vote, 0)
+        url = reverse('api:actor-downvote', args=[actor.id])
+        res = self.client.get(url)
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
+        actor.refresh_from_db()
+        self.assertEqual(actor.vote, 0)
+
     def test_list_actors_by_vote(self) -> None:
         '''Test list actors by the votes they recieved'''
         actor_1 = create_actor(name='Actor 1')
@@ -128,7 +139,7 @@ class ApiTestPublic(TestCase):
         actor_2.upvote()
         actor_2.upvote()
         actor_3.upvote()
-        res = self.client.get(reverse('api:rank-list'))
+        res = self.client.get(reverse('api:actor-list'))
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         actors_serializers = ActorSerializer(res.data, many=True)
         self.assertEqual(len(actors_serializers.data), 3)
